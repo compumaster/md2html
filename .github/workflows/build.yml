@@ -1,0 +1,49 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Test
+        run: dotnet test md2html.slnx -c Release
+
+      - name: Publish
+        shell: pwsh
+        run: |
+          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { '0.0.0-ci' }
+          $common = @('src/Md2Html', '-c', 'Release', "-p:Version=$version", '-p:DebugType=none')
+          dotnet publish @common -o out/standalone --self-contained -p:EnableCompressionInSingleFile=true
+          dotnet publish @common -o out/framework-dependent
+          Compress-Archive -Path out/standalone/* -DestinationPath md2html-win-x64.zip
+          Compress-Archive -Path out/framework-dependent/* -DestinationPath md2html-win-x64-framework-dependent.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: md2html
+          path: '*.zip'
+
+      - name: Create release
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create $env:GITHUB_REF_NAME
+          md2html-win-x64.zip md2html-win-x64-framework-dependent.zip
+          --title "md2html $env:GITHUB_REF_NAME" --generate-notes
