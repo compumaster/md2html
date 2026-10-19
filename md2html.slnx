@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Md2Html.Core/Md2Html.Core.csproj" />
+    <Project Path="src/Md2Html/Md2Html.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Md2Html.Tests/Md2Html.Tests.csproj" />
+  </Folder>
+</Solution>
